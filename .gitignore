@@ -1,0 +1,12 @@
+# IDE
+.idea
+# client
+chrome-sync-client/node_modules
+chrome-sync-client/build
+# service
+chrome-sync-service/node_modules
+chrome-sync-service/build
+chrome-sync-service/ChromeSyncService.log
+chrome-sync-service/db.json
+# total build artifact
+build
