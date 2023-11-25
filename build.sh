@@ -22,7 +22,7 @@ function check_deps(){
   which docker > /dev/null || exit_with_failure "docker not installed"
   which openssl > /dev/null || exit_with_failure "openssl not installed"
   which shasum > /dev/null || exit_with_failure "shasum not installed"
-  which xxd > /dev/null || exit_with_failure "xxd not installed"
+  #which xxd > /dev/null || exit_with_failure "xxd not installed"
 }
 
 function create_container() {

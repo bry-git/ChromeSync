@@ -149,7 +149,7 @@ export async function getLocalChromeData(): Promise<ChromeSyncData> {
       groupId: t.groupId,
       id: t.id,
     };
-    if (t.groupId == -1) {
+    if (t.groupId === -1) {
       chromeSyncData.orphanTabs.push(tab);
     } else {
       // @ts-ignore
