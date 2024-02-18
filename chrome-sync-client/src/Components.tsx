@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Badge,
   Box,
   Button,
   ColumnLayout,
+  Icon,
   Modal,
   ProgressBar,
   SpaceBetween,
@@ -150,6 +151,9 @@ export const ChromeSyncModal = ({showSyncModal, setShowSyncModal, setLastSynced,
   const [tabsLoaded, setTabsLoaded] = useState(true);
   const [initialTabsToLoad, setInitialTabsToLoad] = useState(-1);
   const [tabsToLoad, setTabsToLoad] = useState(-1);
+  const [canOverride, setCanOverride] = useState(false)
+
+  const override = useRef(false)
 
   useEffect(() => {
     (async function () {
@@ -159,37 +163,48 @@ export const ChromeSyncModal = ({showSyncModal, setShowSyncModal, setLastSynced,
         setDiffData(diff);
       }
     })();
-  });
+  }, [data, showSyncModal, tabsLoaded]);
 
   const handleOkClick = async () => {
     try {
-      //enact diff
-      await enactDiff(diffData);
-      const initial = await chrome.tabs.query({ status: "loading" });
-      setInitialTabsToLoad(initial.length);
+      await enactDiff(diffData); // make changes to browser
+
+      const totalTabs = await chrome.tabs.query({})
+      setInitialTabsToLoad(totalTabs.length)
+
       setTabsLoaded(false);
+      let loadTime = 0
+
       // wait for tabs to load, otherwise the local data will have tabs with undefined urls
       let loading = await chrome.tabs.query({ status: "loading" });
-      do {
+
+      do { // wait for tabs to load or user override
+        const scanTimeMillis = 250
+        await new Promise((resolve) => setTimeout(resolve, scanTimeMillis));
+
         loading = await chrome.tabs.query({ status: "loading" });
-        setTabsToLoad(loading.length);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        console.log(loading);
+        setTabsToLoad(prevTabsToLoad => loading.length);
+
+        if (loadTime >= 5000) {
+          await new Promise((resolve) => {
+            resolve(setCanOverride(prevCanOverride => true))})
+        }
+        if(override.current == true) {
+          break
+        }
+        loadTime += scanTimeMillis
       } while (loading.length !== 0);
+
       setTabsLoaded(true);
-      // get new local data hash
-      const updatedLocalData = await getLocalChromeDataDTO(); //
-      // setLastSyncDataHash
-      await setLastSyncedDataHash(updatedLocalData);
-      // send regenerated tabGroup Ids to remote
-      await updateRemoteData(updatedLocalData);
-      //set last window id
-      await setLastWindowId();
+
+      const updatedLocalData = await getLocalChromeDataDTO(); // get new local data hash
+      await setLastSyncedDataHash(updatedLocalData); // setLastSyncDataHash
+      await updateRemoteData(updatedLocalData); // send regenerated tabGroup Ids to remote
+      await setLastWindowId(); //set last window id
       await setWindowChanged(false);
-      // await set last window id
-      setLastSynced(await setLastSyncedTime());
-      // close modal
-      setShowSyncModal(false);
+      setLastSynced(await setLastSyncedTime()); // await set last synced time
+      setShowSyncModal(false); // close modal
+
     } catch (error) {
       alert(`there was an error when attempting to synchronize data: ${error}`);
     }
@@ -198,6 +213,18 @@ export const ChromeSyncModal = ({showSyncModal, setShowSyncModal, setLastSynced,
   const handleCancelClick = () => {
     setShowSyncModal(false);
   };
+
+  const handleOverrideClick = () => {
+    override.current = true
+  };
+
+  const calcProg = () => {
+    if (initialTabsToLoad === -1) {
+      return 0
+    } else {
+      return ((initialTabsToLoad - tabsToLoad) / initialTabsToLoad) * 100
+    }
+  }
 
   return (
     <div className="awsui-dark-mode">
@@ -208,12 +235,24 @@ export const ChromeSyncModal = ({showSyncModal, setShowSyncModal, setLastSynced,
         footer={
           <Box float="right">
             <SpaceBetween direction="horizontal" size="xxs">
-              <Button variant="link" disabled={!tabsLoaded} onClick={handleCancelClick}>
+              <Button variant="link" onClick={handleCancelClick}>
                 Cancel
               </Button>
-              <Button variant="primary" disabled={!tabsLoaded} onClick={handleOkClick}>
-                Ok
-              </Button>
+              {(!tabsLoaded) ? (
+                  <>
+                    <Button variant="primary" disabled={(canOverride == false)} onClick={handleOverrideClick}>
+                      Continue Anyway
+                    </Button>
+                  </>
+              ) : (
+                  <>
+                    <Button variant="primary" disabled={!tabsLoaded} onClick={handleOkClick}>
+                      Ok
+                    </Button>
+                  </>
+              )
+              }
+
             </SpaceBetween>
           </Box>
         }
@@ -228,7 +267,7 @@ export const ChromeSyncModal = ({showSyncModal, setShowSyncModal, setLastSynced,
         ) : (
           <>
             <ProgressBar
-              value={initialTabsToLoad / tabsToLoad}
+              value={calcProg()}
               description="please do not close, some resources are still loading"
               label="Loading"
             />
@@ -264,6 +303,9 @@ export const ChromeSyncSettingsModal = ({ showSettingsModal, setShowSettingsModa
       alert(error);
     }
   };
+  const handleEndpointClick = () => {
+    window.open(ENDPOINT, '_blank')
+  }
 
   return (
     <Modal
@@ -289,8 +331,9 @@ export const ChromeSyncSettingsModal = ({ showSettingsModal, setShowSettingsModa
           <Button onClick={handleResetClick}>Reset Data</Button>
         </div>
         <p>Removes all extension data stored in the client. No change is made to tabs, groups, or bookmarks</p>
-        <div style={{ marginTop: "20px" }}>
+        <div style={{ marginTop: "20px" }} onClick={handleEndpointClick}>
           <code>{ENDPOINT}</code>
+          <Icon name="external" variant="link"/>
         </div>
         <p>The endpoint that this client points to for synchronization</p>
         <div style={{ marginTop: "20px" }}>
