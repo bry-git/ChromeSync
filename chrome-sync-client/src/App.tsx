@@ -83,7 +83,7 @@ function App() {
             <SpaceBetween size="l">
               <Header
                 variant="h3"
-                info={<Link href="http://github.com">Source Code</Link>}
+                info={<Link href="https://github.com/bry-git/ChromeSync">Source Code</Link>}
                 description={<SyncBadge time={lastSynced} dataIsUnchanged={dataIsUnchanged} />}
                 actions={
                   <Button variant="primary" onClick={handleSyncClick}>

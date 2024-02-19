@@ -1,6 +1,7 @@
 import { ChromeSyncDataDTO } from "./globals";
 
-export const ENDPOINT = `https://${process.env.REACT_APP_ENDPOINT}`
+const PROTO = (process.env.REACT_APP_PROTO) ? process.env.REACT_APP_PROTO : "https"
+export const ENDPOINT = `${PROTO}://${process.env.REACT_APP_ENDPOINT}`
 const API_KEY = process.env.REACT_APP_API_KEY
 
 

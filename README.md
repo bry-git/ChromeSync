@@ -25,8 +25,13 @@ after which the client will be an unpacked chrome extension at `ChromeSync/build
 ### Client
 ##### Developing outside of a Container
 
-1. make changes and build the client
+1. make changes and build the client from the `chrome-sync-client` directory
+
+note that there are several options to run this for dev, like overriding the random API key header and protocol that are optional
 ```shell
+export REACT_APP_API_KEY="pass" && \
+export REACT_APP_PROTO="http" && \
+export REACT_APP_ENDPOINT="localhost:3030" && \
 npm run build:dev
 ```
 2. open [chrome://extensions](chrome://extensions) and enable developer mode
@@ -34,7 +39,9 @@ npm run build:dev
 4. the plugin can be opened from the extensions tray in chrome
 
 ### Service
-1. make changes, build and start the service
+1. make changes, build and start the service from the `chrome-sync-service` directory
 ```shell
-export API_KEY=<API_KEY> && npm run build && node build/ChromeSyncService.js
+export API_KEY="pass" && \
+npm run build && \
+node build/ChromeSyncService.js
 ```
